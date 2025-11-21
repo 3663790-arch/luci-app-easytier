@@ -5,8 +5,8 @@
 
 1. 右上角Fork克隆本项目
 2. 修改 `.github/workflows/build.yml`，在 `jobs.build.strategy` 修改 arch 和 sdk
-  - 建议 arch 只保留需要的选项，加速编译
-  - sdk 可根据需要填写，其中`SNAPSHOT`后缀的是apk安装包，`openwrt-22.03`的是ipk安装包（也可以根据自己的路由 OpenWRT 版本修改）
+ - 建议 arch 只保留需要的选项，加速编译
+ - sdk 可根据需要填写，`22.03.7` 和 `SNAPSHOT` 版本现在都统一生成 IPK 安装包格式
 3. 到 actions 手动触发自动编译流程，注意需要填写 release，否则只编译不发布，参考下图：
  <img width="2727" height="866" alt="image" src="https://github.com/user-attachments/assets/24a55d1c-7937-4cef-87f8-cd8778b5f009" />
 
@@ -20,11 +20,6 @@ opkg remove luci-app-easytier
 
 #更新版本需要先卸载再安装新的ipk然后去管理界面关闭插件 修改参数后重新点击应用并保存
 #安装后openwrt管理界面里不显示easytier 请注销登录或关闭窗口重新打开  
-```
-
-```bash
-#如果是新版openwrt使用的是apk包管理器 出现无法安装apk的可以尝试使用忽略证书验证
-apk add --allow-untrusted /tmp/tmp/luci-app-easytier.apk
 ```
 
 此luci-app-easytier不包含二进制程序，需要自行在openwrt管理界面里的easytier插件界面里上传二进制程序
