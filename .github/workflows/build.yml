@@ -85,14 +85,38 @@ jobs:
           #NO_DEFAULT_FEEDS: 1
           NO_REFRESH_CHECK: 1
           NO_SHFMT_CHECK: 1
-          MAKEFLAGS: -j$(nproc)
+          MAKEFLAGS: -j$(nproc) PACKAGE_FORMAT=ipk
           V: s
+          # Force IPK format for all versions including SNAPSHOT
+          PACKAGE_FORMAT: ipk
+          OPKG_FORCE: 1
+          # Additional environment variables to force IPK format for SNAPSHOT
+          PACKAGES_ROOTFS_FORMAT: ipk
+          TARGET_ROOTFS_FORMAT: ipk
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: EasyTier-${{ matrix.arch }}-${{ matrix.sdk }}
           path: bin/packages/${{ matrix.arch }}/packages_ci/
+
+      - name: Verify and fix package format
+        run: |
+          # Check what package format was generated
+          echo "Checking generated package files:"
+          find bin/packages/${{ matrix.arch }}/packages_ci/ -type f -name "*.ipk" -o -name "*.apk" | while read file; do
+            echo "Found: $file"
+          done
+          
+          # If APK files were generated for SNAPSHOT, we need to handle this
+          if [ "${{ matrix.sdk }}" = "SNAPSHOT" ]; then
+            APK_COUNT=$(find bin/packages/${{ matrix.arch }}/packages_ci/ -name "*.apk" | wc -l)
+            if [ "$APK_COUNT" -gt 0 ]; then
+              echo "Warning: APK files detected in SNAPSHOT build. This indicates the format override didn't work."
+              echo "Consider using a different SDK version or manual conversion."
+              exit 1
+            fi
+          fi
 
       - name: Create compress files
         run: |
@@ -108,14 +132,14 @@ jobs:
             token: ${{ secrets.GITHUB_TOKEN }}
             body: |
 
-             > ### ![](https://img.shields.io/badge/%E7%BC%96%E8%AF%91%E6%97%B6%E9%97%B4-${{ env.build_time }}-easytier?logo=github&labelColor=%E9%A1%BB)![](https://img.shields.io/github/downloads/${{ github.repository }}/${{ env.TAG }}/total?label=%E4%B8%8B%E8%BD%BD%E6%AC%A1%E6%95%B0&logo=github)
+            > ### ![](https://img.shields.io/badge/%E7%BC%96%E8%AF%91%E6%97%B6%E9%97%B4-${{ env.build_time }}-easytier?logo=github&labelColor=%E9%A1%BB)![](https://img.shields.io/github/downloads/${{ github.repository }}/${{ env.TAG }}/total?label=%E4%B8%8B%E8%BD%BD%E6%AC%A1%E6%95%B0&logo=github)
 
-             - 其中 **`22.03.7`** 里面是ipk安装包 **`SNAPSHOT`** 里面是apk安装包
+            - **`22.03.7`** 和 **`SNAPSHOT`** 版本都提供统一的 IPK 安装包格式
 
-             - **`*.apk` 是OpenWrt新版的APK包** 对于apk包跳过证书命令
-             `apk add --allow-untrusted luci-app-easytier.apk`
+            - **`*.ipk` 是OpenWrt标准包格式** 使用以下命令安装：
+            `opkg install luci-app-easytier.ipk`
 
-             ${{ github.event.inputs.text }}
+            ${{ github.event.inputs.text }}
            
             tag_name: ${{ env.TAG }}
             files: EasyTier-${{ env.TAG }}-${{ matrix.arch }}-${{ matrix.sdk }}.zip
